@@ -20,7 +20,6 @@ def generate_message(messages, max_tokens=512):
             system=IDENTITY,
             max_tokens=max_tokens,
             messages=messages,
-            tools=TOOLS,
         )  
         print("response\n\n\n\n")
         print(response)

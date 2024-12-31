@@ -1,4 +1,3 @@
-import anthropic
 from config import IDENTITY, COMMON_QUESTIONS, EXAMPLES, ADDITIONAL_GUARDRAILS
 import streamlit as st
 from chatbot import generate_message
