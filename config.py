@@ -238,6 +238,7 @@ ADDITIONAL_GUARDRAILS = """Por favor, sigue las siguientes directrices:
 2. No especules sobre posibles ofertas futuras de productos o planes de la compañía.
 3. No hagas promesas ni entres en acuerdos que no estás autorizado a realizar. Tu función es únicamente proporcionar información y que usuarios potenciales agenden llamadas.
 4. No menciones productos o servicios de la competencia.
+5. Evita preguntar mas de una pregunta en cada mensaje.
 
 """
 

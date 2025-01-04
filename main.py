@@ -44,7 +44,7 @@ def main():
                     response_placeholder.markdown(full_response['content'])
 
     else:
-        st.title("Select conversation...")
+        st.title("Select conversation....")
 
     st.sidebar.header("Conversations")
     selected_conversation = st.sidebar.selectbox(

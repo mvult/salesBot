@@ -47,3 +47,7 @@ Erika Jimenez seems like a 'bad' conversation, but it seemed to have worked.  We
 
 
 
+### Streamlit Anthropic Implementation notes
+https://docs.anthropic.com/en/api/messages
+https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#tracking-cache-performance
+https://github.com/anthropics/anthropic-cookbook/blob/main/tool_use/customer_service_agent.ipynb
