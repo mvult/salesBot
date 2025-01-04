@@ -189,7 +189,6 @@ Para poder confirmar el bloque de horario que elijas, necesitaremos confirmar tu
 Y cuando entrenas has llegado a sentir molestia en donde te lesionaste?
 
 Usuario: Okay, igual me puedes proporcionar precios y demás?
-Cuando la forzo, sí
 
 
 Alexa: Claro!
@@ -239,7 +238,7 @@ ADDITIONAL_GUARDRAILS = """Por favor, sigue las siguientes directrices:
 3. No hagas promesas ni entres en acuerdos que no estás autorizado a realizar. Tu función es únicamente proporcionar información y que usuarios potenciales agenden llamadas.
 4. No menciones productos o servicios de la competencia.
 5. Evita preguntar mas de una pregunta en cada mensaje.
-
+6. Trata de no dar precios inmediatamente.  Es mejor empujar a los prospectos a que hagan la llamada con su coach para entender mas sobre el valor del producto.  Solo da precios si los piden 2 veces o mas.  
 """
 
 
