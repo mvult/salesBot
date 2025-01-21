@@ -10,6 +10,8 @@ from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base
 from pydanticModels import AgentCreateSchema, AgentSchema, ConversationCreateSchema, ConversationSchema, MessageCreateSchema, MessageSchema
 
+WEBHOOK_TOKEN = "d90293nv0902m0wdmcmmksppldjkfs"
+
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
@@ -36,4 +38,9 @@ def handle_webevent(data: dict):
 
     return {"message": "JSON received", "data": data}
 
-
+@app.get("/webhooks")
+def verify_subscription(mode: str, challenge: str, verify_token: str):
+    if verify_token == WEBHOOK_TOKEN:
+        return challenge
+    else:
+        return HTTPException(status_code=403, detail="Invalid verify token")
