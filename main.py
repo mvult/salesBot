@@ -1,72 +1,39 @@
-from config import IDENTITY, COMMON_QUESTIONS, EXAMPLES, ADDITIONAL_GUARDRAILS
-import streamlit as st
-from chatbot import generate_message
-from persistence import  ConversationPersistence
-from supabase import create_client
+from datetime import datetime
+from typing import Optional, List
+import json
 
-TASK_INSTRUCTIONS = ' '.join([COMMON_QUESTIONS, EXAMPLES, ADDITIONAL_GUARDRAILS])
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-persistence = ConversationPersistence(create_client(st.secrets['SUPABASE_URL'], st.secrets['SUPABASE_KEY']))
+from persistence.models import Agent, Conversation, Message
+from persistence.db import engine, get_db, Base
+from pydanticModels import AgentCreateSchema, AgentSchema, ConversationCreateSchema, ConversationSchema, MessageCreateSchema, MessageSchema
 
-def switch_conversation(name):
-    st.session_state.current_conversation = name
+app = FastAPI()
 
-def add_conversation():
-    if st.session_state.new_conversation:
-        name = st.session_state.new_conversation
-        persistence.add_message(name, "user", TASK_INSTRUCTIONS)
-        persistence.add_message(name, "assistant", "Understood")
-        st.session_state.new_conversation = ""  
-        switch_conversation(name)
+Base.metadata.create_all(bind=engine)
 
-def main():
-    conversations = persistence.list_conversations()
-    
-    if 'current_conversation' in st.session_state:
-        st.title(st.session_state.current_conversation)
-        messages = persistence.get_conversation(st.session_state.current_conversation)
-        
-        for message in messages[2:]:
-            with st.chat_message(message['role']):
-                st.markdown(message['content'])
-      
+@app.post("/agents", response_model=AgentSchema)
+def create_agent(agent: AgentCreateSchema, db: Session = Depends(get_db)):
+    db_agent = Agent(**agent.dict())
+    db.add(db_agent)
+    db.commit()
+    db.refresh(db_agent)
+    return db_agent
 
-        if user_msg := st.chat_input("Type your message here..."):
-            persistence.add_message(st.session_state.current_conversation, "user", user_msg)
-            st.chat_message("user").markdown(user_msg)
-            messages.append({'role':"user", "content": user_msg})
+@app.get("/agents", response_model=List[AgentSchema])
+def get_agents(db: Session = Depends(get_db)):
+    return db.query(Agent).all()
 
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    response_placeholder = st.empty()
-                    full_response = generate_message(messages)
-                    persistence.add_message(st.session_state.current_conversation, "assistant", full_response['content'])
-                    response_placeholder.markdown(full_response['content'])
+@app.post("/webhooks")
+def handle_webevent(data: dict):
+    print("Received JSON data:", data)
 
-    else:
-        st.title("Select conversation....")
+    # Optionally, pretty-print the JSON
+    print("Pretty-printed JSON:")
+    print(json.dumps(data, indent=2))
 
-    st.sidebar.header("Conversations")
-    selected_conversation = st.sidebar.selectbox(
-        "Select Conversation",
-        options=conversations,
-        key="current_conversation",
-        on_change=lambda: switch_conversation(st.session_state.current_conversation),
-    )
-
-    st.sidebar.text_input("New Conversation Name", key="new_conversation")
-
-    st.sidebar.button("Add Conversation", on_click=add_conversation)
-
-    if st.sidebar.button("Delete Conversation"):
-        persistence.delete_conversation(st.session_state.current_conversation)
-        conversations = [x for x in conversations if x != st.session_state.current_conversation]
-
-    print(st.session_state)
-
-if __name__ == "__main__": main()
-
-
-
+    return {"message": "JSON received", "data": data}
 
 
