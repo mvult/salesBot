@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 import json
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -39,8 +39,15 @@ def handle_webevent(data: dict):
     return {"message": "JSON received", "data": data}
 
 @app.get("/webhooks")
-def verify_subscription(mode: str, challenge: str, verify_token: str):
-    if verify_token == WEBHOOK_TOKEN:
-        return challenge
+def verify_subscription(
+    hub_mode: str = Query(..., alias="hub.mode"),
+    hub_challenge: str = Query(..., alias="hub.challenge"),
+    hub_verify_token: str = Query(..., alias="hub.verify_token"),
+):
+    print("In verification")
+
+    if hub_verify_token == WEBHOOK_TOKEN and hub_mode == "subscribe":
+        print("sending back")
+        return hub_challenge 
     else:
         return HTTPException(status_code=403, detail="Invalid verify token")
