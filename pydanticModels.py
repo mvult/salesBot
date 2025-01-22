@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 # Pydantic models for Agent
 class AgentBaseSchema(BaseModel):
@@ -27,6 +27,11 @@ class ConversationBaseSchema(BaseModel):
 class ConversationCreateSchema(ConversationBaseSchema):
     pass
 
+class ConversationPatchSchema(BaseModel):
+    outcome: Optional[str] = None
+    handedOff: Optional[bool] = None
+    archived: Optional[bool] = None
+
 class ConversationSchema(ConversationBaseSchema):
     id: int
 
@@ -51,3 +56,45 @@ class MessageSchema(MessageBaseSchema):
     class Config:
         from_attributes = True
     
+
+# Define models for the nested structures
+class Sender(BaseModel):
+    id: str
+
+class Recipient(BaseModel):
+    id: str
+
+class Message(BaseModel):
+    mid: str
+    text: str
+
+class Reaction(BaseModel):
+    mid: str
+    action: str
+    reaction: str
+    emoji: str
+
+class Read(BaseModel):
+    mid: int
+
+# This is where the different events differ in structure.  message vs. reaction vs read
+class Value(BaseModel):
+    sender: Sender
+    recipient: Recipient
+    timestamp: str
+    message: Optional[Message] = None
+    reaction: Optional[Reaction] = None
+    read: Optional[Read] = None
+
+class Change(BaseModel):
+    field: str
+    value: Value
+
+class Entry(BaseModel):
+    id: str
+    time: int
+    changes: List[Change]
+
+class WebhookPayloadSchema(BaseModel):
+    entry: List[Entry]
+    object: str
