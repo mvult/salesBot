@@ -1,50 +1,48 @@
 import os
-import json
+from typing import cast, Literal
 
-from anthropic import Anthropic, Response
+from anthropic import Anthropic
+from anthropic.types.message_param import MessageParam
+from anthropic.types.message import Message as AnthropicResponse
+
 
 # from config import IDENTITY, TOOLS, MODEL, get_quote
 from config import SALES_BOT_MODE
 from persistence.models import Message, Agent
-from persistence.db import get_db
+from persistence.db import get_managed_db
 
 client = Anthropic(api_key=os.getenv("ANTHROPIC_KEY"))
 HANDOFF_MESSAGE = "Es buena pregunta. No estoy 100% segura. Déjame preguntarle a mi jefe. Vuelvo en unos minutos."
+
 
 def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> str:
     if SALES_BOT_MODE != "live":
         return "Test message"
 
-    with get_db() as db:
-        agent = db.query(Agent).filter_by(id=agent_id).first()
+    with get_managed_db() as db:
+        agent = db.query(Agent).filter_by(id=agent_id).one()
     
-    llm_messages = [{"role": m.role, "content": m.content} for m in messages]
-    llm_messages = [{"role": "user", "content": agent.instructions}, {"role": "assistant", "content": "Understood"}, *llm_messages]
+    llm_messages: list[MessageParam] = [MessageParam(role=cast(Literal['user', 'assistant'], m.role), content= m.content) for m in messages]
+    llm_messages: list[MessageParam] = [MessageParam(role="user", content= agent.instructions), MessageParam(role="assistant", content="Understood"), *llm_messages]
     
 
     print("messages\n\n\n\n")
     print(messages)
     print(agent.tools)
-    print(json.loads(agent.tools))
+
     try:
-        response = client.messages.create(
+        response: AnthropicResponse = client.messages.create(
             model=agent.model,
             system=agent.identity,
             max_tokens=max_tokens,
-            messages=messages,
-            tools=json.loads(agent.tools)
+            messages=llm_messages,
+            tools=agent.tools
         )  
-        print("response\n\n\n\n")
-        print(response)
-        if "error" in response:
-            return f"An error occurred: {response['error']}"
-
         if asks_for_tool_use(response):
             return HANDOFF_MESSAGE
 
         if response.content[0].type == "text":
             return response.content[0].text
-    
         else:
             raise Exception("An error occurred: Unexpected response type")
     except Exception as e:
@@ -53,7 +51,7 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
 
 
 
-def asks_for_tool_use(response: Response) -> bool:
+def asks_for_tool_use(response: AnthropicResponse) -> bool:
     try:
         for c in response.content:
             if c.type == "tool_use":

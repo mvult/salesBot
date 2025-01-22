@@ -7,6 +7,9 @@ def test_agent_data():
     return {
         "name": "Test Agent",
         "instructions": "Test agent description",
+        "model": "very smart model",
+        "tools": ["hey", "hello"],
+        "identity": "a very nice model"
     }
 
 def test_post_agent(base_url, headers, test_agent_data):
@@ -61,11 +64,11 @@ def test_post_webhook_instagram(base_url, headers):
         ],
         "object": "instagram"
     }
-    
+
     r = requests.post(
         f"{base_url}/webhooks",
         headers=headers,
         json=json_payload
     )
-    
+
     assert r.status_code == 200

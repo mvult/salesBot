@@ -1,11 +1,14 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 # Pydantic models for Agent
 class AgentBaseSchema(BaseModel):
     name: str
     instructions: str
+    model: str
+    identity: str
+    tools: Any
 
 class AgentCreateSchema(AgentBaseSchema):
     pass
@@ -21,15 +24,15 @@ class ConversationBaseSchema(BaseModel):
     agentid: int
     outcome: Optional[str] = None
     platform: Optional[str] = None
-    handedOff: Optional[bool] = False
-    handOffTime: Optional[datetime] = None
+    handed_off: Optional[bool] = False
+    hand_off_time: Optional[datetime] = None
 
 class ConversationCreateSchema(ConversationBaseSchema):
     pass
 
 class ConversationPatchSchema(BaseModel):
     outcome: Optional[str] = None
-    handedOff: Optional[bool] = None
+    handed_off: Optional[bool] = None
     archived: Optional[bool] = None
 
 class ConversationSchema(ConversationBaseSchema):

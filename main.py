@@ -1,6 +1,4 @@
-from datetime import datetime
-from typing import Optional, List
-import json
+from typing import  List
 
 from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from sqlalchemy import select
@@ -26,7 +24,8 @@ def create_agent(agent: AgentCreateSchema, db: Session = Depends(get_db)):
 
 @app.get("/agents", response_model=List[AgentSchema])
 def get_agents(db: Session = Depends(get_db)):
-    return db.query(Agent).all()
+    return db.execute(select(Agent)).scalars().all()
+ 
 
 @app.get("/conversations", response_model=List[ConversationSchema])
 def get_conversations(db: Session = Depends(get_db)):
