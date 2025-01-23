@@ -1,4 +1,5 @@
 import random
+from typing import cast
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session 
@@ -17,7 +18,7 @@ class LocalAgent:
 
 def get_optimized_agent(session: Session) -> Agent:
     if random.random() < EPSILON:
-        return session.query(Agent).order_by(func.random()).one()
+        return cast(Agent, session.query(Agent).order_by(func.random()).first())
     
     results = session.execute(text("""
         SELECT agent_id,

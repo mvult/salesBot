@@ -1,5 +1,6 @@
 from contextlib import contextmanager, asynccontextmanager
 from typing import AsyncGenerator
+import logging
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -15,7 +16,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Session = scoped_session(SessionLocal)
 
-async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=True)
+async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=False)
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
     class_=AsyncSession,

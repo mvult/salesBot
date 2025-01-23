@@ -1,14 +1,15 @@
 import asyncio
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, UTC, timezone
 from typing import cast
 
 from messaging.utils import calculate_typing_delay_seconds
 from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from pydanticModels import WebhookPayloadSchema
 from persistence.models import Conversation, Message
-from persistence.db import get_managed_db, get_async_db
+from persistence.db import get_async_db
 from config import EVENLIFT_IG_ID, SALES_BOT_MODE
 from agents.hooks import get_optimized_agent
 from llm import generate_llm_message, HANDOFF_MESSAGE
@@ -22,31 +23,32 @@ async def evaluate_conversation(convo_id: int, client_id: str):
     print("In async!")
     if SALES_BOT_MODE == "live":
         await asyncio.sleep(MESSAGE_ACCUMULATION_SECONDS + 5)
+    else:
+        await asyncio.sleep(3)
+
     print("After sleep!")
 
     async with get_async_db() as db:
-        # msgs = db.query(Message).filter_by(conversation_id=convo_id).order_by(Message.create_time).all()
-        
         _msgs = await db.execute(select(Message).filter_by(conversation_id=convo_id).order_by(Message.create_time))
-        msgs = _msgs.all()
+        
+        msgs = _msgs.scalars().all()
+
+        if len(msgs) == 0:return 
 
         latest = msgs[-1]
 
-        if latest.role != "user" or (datetime.now(UTC) - latest.create_time) < timedelta(MESSAGE_ACCUMULATION_SECONDS):
-            return
-
-        # convo = db.query(Conversation).filter_by(id=convo_id).first()
         _convo = await db.execute(select(Conversation).filter_by(id=convo_id))
-        convo = _convo.one()
+        convo = _convo.scalars().one()
 
-        if convo.handed_off:
-            print(f"Convo {convo.client_id} {convo.client_name} already handed off to human")
+        if should_skip_message(convo, latest):
+            print("SKIPPING")
             return
 
-        msgs = add_bundle_info(cast(list[Message], msgs))
+        print("NOT SKIPPING")
+        msgs = add_bundle_info(list(msgs))
 
         try:
-            bundled_msgs = bundle_messages(msgs)
+            bundled_msgs = bundle_messages(list(msgs))
             llm_response = generate_llm_message(bundled_msgs, convo.agent_id)
             if llm_response == HANDOFF_MESSAGE:
                 convo.handed_off = True
@@ -81,9 +83,9 @@ async def evaluate_conversation(convo_id: int, client_id: str):
 
 
         
-def receive_message_event(event: WebhookPayloadSchema) -> Conversation:
+def receive_message_event(event: WebhookPayloadSchema, session:Session) -> Conversation:
     client_id, sender_id, recipient_id = get_client_id(event)
-    convo = get_relevant_conversation(client_id)
+    convo = get_relevant_conversation(client_id, session)
 
     print(event.model_dump_json(indent=2))
 
@@ -93,17 +95,14 @@ def receive_message_event(event: WebhookPayloadSchema) -> Conversation:
 
     m = Message(conversation_id=convo.id, content=content.text, role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id)
 
-    print("before get managed dv")
-    with get_managed_db() as session:
-        session.add(m)
-        session.commit()
+    session.add(m)
+    session.commit()
+    session.refresh(convo)
     
-    print("after")
     return convo
     
 
-def get_relevant_conversation(client_id: str) -> Conversation: 
-    with get_managed_db() as session:
+def get_relevant_conversation(client_id: str, session: Session) -> Conversation: 
         try:
             return session.query(Conversation).filter_by(client_id=client_id).one()
         except NoResultFound:
@@ -114,7 +113,7 @@ def get_relevant_conversation(client_id: str) -> Conversation:
                 agent_id=get_optimized_agent(session).id,
             )
             session.add(new_convo)
-            session.commit()
+            session.flush()
             return new_convo
         except MultipleResultsFound:
             raise Exception("Multiple conversations found for client_id", client_id)
@@ -128,4 +127,24 @@ def get_client_id(event: WebhookPayloadSchema) -> tuple[str, str, str]:
         return sender_id, sender_id, recipient_id
     return recipient_id, sender_id, recipient_id
 
+def should_skip_message(convo: Conversation, lastMsg: Message) -> bool:
+    if convo.handed_off:
+        print(f"Convo {convo.client_id} {convo.client_name} already handed off to human")
+        return True
+    
+    if lastMsg.role == "assistant":
+        print("Last message was from assistant, skipping")
+        return True
 
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    time_since_last_msg = now - lastMsg.create_time
+    accumulation_time = MESSAGE_ACCUMULATION_SECONDS if SALES_BOT_MODE == "live" else 2
+
+    print(time_since_last_msg, accumulation_time)
+
+    if time_since_last_msg < timedelta(seconds=accumulation_time):
+        print("Skipping message, not enough time has passed since last message")
+        return True 
+
+    return False

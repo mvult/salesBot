@@ -26,34 +26,35 @@ def add_bundle_info(msgs: list[Message])-> list[Message]:
 
     return msgs
 
-
-def split_llm_response(text: str, max_length: int = 160,  max_sentences: int = 4) -> list[str]:
-   
-    # Split text into sentences using regex (simple heuristic)
-    sentences = re.split(r'(?<=[.!?]) +', text)  # Split on spaces after punctuation
-
+def split_llm_response(text: str) -> list[str]:
+    # Split text into sentences
+    sentences = re.split(r'(?<=[.!?]) +', text)
+    
     messages = []
-    current_message = ""
-    current_sentence_count = 0
-
+    current_group = []
+    
     for sentence in sentences:
-        # If adding the next sentence would exceed the max length or max sentences, finalize the current message
-        if (len(current_message) + len(sentence) > max_length) or (current_sentence_count >= max_sentences):
-            if current_message:
-                messages.append(current_message.strip())
-                current_message = ""
-                current_sentence_count = 0
-
-        # Add the sentence to the current message
-        current_message += sentence + " "
-        current_sentence_count += 1
-
-    # Add the last message if it exists
-    if current_message.strip():
-        messages.append(current_message.strip())
-
+        # Normalize whitespace and punctuation spacing
+        stripped = re.sub(r'([.!?])\s+', r'\1', sentence.strip())
+        if not stripped:
+            continue
+        
+        # Handle long sentences
+        if len(stripped) > 160:
+            if current_group:
+                messages.append(" ".join(current_group))
+                current_group = []
+            messages.append(stripped)
+        else:
+            current_group.append(stripped)
+            if len(current_group) == 2:
+                messages.append(" ".join(current_group))
+                current_group = []
+    
+    if current_group:
+        messages.append(" ".join(current_group))
+    
     return messages
-
 
 def bundle_messages(msgs: list[Message]) -> list[Message]:
     new_msgs = []

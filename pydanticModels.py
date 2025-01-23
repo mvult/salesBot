@@ -21,7 +21,7 @@ class AgentSchema(AgentBaseSchema):
 
 # Pydantic models for Conversation
 class ConversationBaseSchema(BaseModel):
-    agentid: int
+    agent_id: int
     outcome: Optional[str] = None
     platform: Optional[str] = None
     handed_off: Optional[bool] = False
@@ -48,6 +48,7 @@ class MessageBaseSchema(BaseModel):
     role: Optional[str] = None
     source: Optional[str] = None
     create_time: Optional[datetime] = None
+    bundle_id: Optional[str] = None
 
 class MessageCreateSchema(MessageBaseSchema):
     pass
