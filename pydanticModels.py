@@ -72,6 +72,48 @@ class MessageSchema(MessageBaseSchema):
         from_attributes = True
     
 
+# # Define models for the nested structures
+# class Sender(BaseModel):
+#     id: str
+#
+# class Recipient(BaseModel):
+#     id: str
+#
+# class Message(BaseModel):
+#     mid: str
+#     text: str
+#
+# class Reaction(BaseModel):
+#     mid: str
+#     action: str
+#     reaction: str
+#     emoji: str
+#
+# class Read(BaseModel):
+#     mid: int
+#
+# # This is where the different events differ in structure.  message vs. reaction vs read
+# class Value(BaseModel):
+#     sender: Sender
+#     recipient: Recipient
+#     timestamp: str
+#     message: Optional[Message] = None
+#     reaction: Optional[Reaction] = None
+#     read: Optional[Read] = None
+#
+# class Change(BaseModel):
+#     field: str
+#     value: Value
+#
+# class Entry(BaseModel):
+#     id: str
+#     time: int
+#     changes: List[Change]
+#
+# class WebhookPayloadSchema(BaseModel):
+#     entry: List[Entry]
+#     object: str
+#
 # Define models for the nested structures
 class Sender(BaseModel):
     id: str
@@ -79,36 +121,21 @@ class Sender(BaseModel):
 class Recipient(BaseModel):
     id: str
 
-class Message(BaseModel):
+# This is where the different events differ in structure.  message vs. reaction vs read
+class WebhookMessage(BaseModel):
     mid: str
     text: str
 
-class Reaction(BaseModel):
-    mid: str
-    action: str
-    reaction: str
-    emoji: str
-
-class Read(BaseModel):
-    mid: int
-
-# This is where the different events differ in structure.  message vs. reaction vs read
-class Value(BaseModel):
+class MessagingEntry(BaseModel):
+    message: WebhookMessage
+    recipient: Recipient 
     sender: Sender
-    recipient: Recipient
-    timestamp: str
-    message: Optional[Message] = None
-    reaction: Optional[Reaction] = None
-    read: Optional[Read] = None
-
-class Change(BaseModel):
-    field: str
-    value: Value
+    timestamp: int
 
 class Entry(BaseModel):
     id: str
     time: int
-    changes: List[Change]
+    messaging: List[MessagingEntry]
 
 class WebhookPayloadSchema(BaseModel):
     entry: List[Entry]

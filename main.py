@@ -1,8 +1,9 @@
 from typing import  List
 import logging
 import os
+import asyncio
 
-from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -113,5 +114,17 @@ def handle_webevent(event: WebhookPayloadSchema, background_tasks: BackgroundTas
         with get_managed_db() as session:
             convo = receive_message_event(event, session)
             background_tasks.add_task(evaluate_conversation, convo.id, convo.client_id)
+
+    return {"message": "JSON received"}
+
+@app.post("/webhooks")
+def handle_webevent(event: Request):
+    print(event)
+    try:
+        json_body = asyncio.run(event.json())
+        result = WebhookPayloadSchema.model_validate_json(json_body)
+        print("Valid", result)
+    except Exception as e:
+        print(e)
 
     return {"message": "JSON received"}
