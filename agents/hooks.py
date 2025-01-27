@@ -31,7 +31,9 @@ def get_optimized_agent(session: Session) -> Agent:
 
     if len(results) == 0:
         print("No agents with conversations found, selecting randomly")
-        return session.query(Agent).order_by(func.random()).one()
+        ret = session.query(Agent).order_by(func.random()).first()
+        assert ret
+        return ret
 
     agents_with_rates = [
         (row.agent_id, row.successes / row.total_conversations) for row in results
@@ -44,6 +46,7 @@ def get_optimized_agent(session: Session) -> Agent:
     
     # Random choice if multiple
     best_agent_id = random.choice(best_agents)
+    print("Best agent id", best_agent_id)
 
     return session.query(Agent).filter(Agent.id == best_agent_id).one()
 

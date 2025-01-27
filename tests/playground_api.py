@@ -1,6 +1,31 @@
 import requests
 import json
 
+real_msg = """{"object": "instagram",
+  "entry": [
+    {
+      "time": 1737678111582,
+      "id": "17841411286042347",
+      "messaging": [
+        {
+          "sender": {
+            "id": "640673465068123"
+          },
+          "recipient": {
+            "id": "17841411286042347"
+          },
+          "timestamp": 1737678110615,
+          "message": {
+            "mid": "aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDExMjg2MDQyMzQ3OjM0MDI4MjM2Njg0MTcxMDMwMTI0NDI1OTc5MDAxNjg2MzY1Mjc2NTozMjA1NDUwMzM4OTAxODcxOTM1
+NjI2ODI1OTcyODk0OTI0OAZDZD",
+            "text": "Hey"
+          }
+        }
+      ]
+    }
+  ]
+}"""
+
 IG_ACCESS_TOKEN = 'IGAAQSspJjZBBRBZAE9KZAWtYem5Pcmg2VFM1S1FBY0pKTVhrSk15U2kxcDNtdkhOZAHRpcjh0UEFzSHcyZAEI1Sll4aWc5SG1MWjB1M21wOFFGcXVXdFdXTy02Q2hQenE2UXNmNE5nMWpSanZAuRk1oa2VFSHlkYzB0VktaZAkl3OHcwdwZDZD'
 
 CONVO_ID = 17842015820359855
@@ -19,11 +44,27 @@ def get_conversation(id):
     r = requests.get(f"https://graph.instagram.com/v21.0/{id}", params={'fields': 'messages', 'access_token': IG_ACCESS_TOKEN})
     return r
 
-def get_conversations(id):
+def get_conversations():
     r = requests.get(f"https://graph.instagram.com/v21.0/me/conversations", params={'fields': 'messages', 'access_token': IG_ACCESS_TOKEN})
     return r
 
-r = get_message(MESSAGE_ID)
+# r = get_message(MESSAGE_ID)
+#
+# print(r)
+# print(r.json())
+#
+#
+# r = requests.post(640673465068123
+frost_id = 640673465068123 
+evenlit_id = 17841411286042347
+
+
+r = requests.post(f"https://graph.instagram.com/v22.0/{evenlit_id}/messages", 
+                  headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           
+                  params={'access_token': IG_ACCESS_TOKEN}, 
+                  json={"recipient":{"id":frost_id}, "message": {"text": "Return message fro. evenlift"}})
+# r = get_conversations()
+# r = get_message(MESSAGE_ID)
 
 print(r)
 print(r.json())

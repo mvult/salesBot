@@ -60,6 +60,8 @@ async def evaluate_conversation(convo_id: int, client_id: str):
             raise e
 
         new_msg_texts = split_llm_response(llm_response)
+        
+        print(f"Split the following text: \n${llm_response}\nInto the following messages:\n${new_msg_texts}")
 
         new_msgs = [Message(content=m, 
                             conversation_id=convo_id, 
@@ -73,7 +75,7 @@ async def evaluate_conversation(convo_id: int, client_id: str):
             try:
                 if SALES_BOT_MODE == "live":
                     await asyncio.sleep(calculate_typing_delay_seconds(m.content))
-                send_message_to_user(m)
+                send_message_to_user(m, convo.client_id)
                 m.create_time = datetime.now(UTC)
                 db.add(m)
                 await db.commit()
@@ -117,6 +119,10 @@ def get_relevant_conversation(client_id: str, session: Session) -> Conversation:
             return new_convo
         except MultipleResultsFound:
             raise Exception("Multiple conversations found for client_id", client_id)
+
+        except Exception as e:
+            print("Unexpected Error", e)
+            raise e
 
         
 

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { url_base } from '@/config';
 
@@ -34,6 +34,45 @@ export const useDeleteAgent = () => {
     },
     onError: (error) => {
       console.error('Error deleting agent:', error);
+    },
+  });
+};
+
+const createAgent = async (agentData) => {
+  const response = await axios.post(`${url_base}/agents`, agentData);
+  return response.data;
+};
+
+export const useCreateAgent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createAgent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    },
+    onError: (error) => {
+      console.error('Error creating agent:', error);
+    },
+  });
+};
+
+
+const updateAgent = async ({ id, agentData }) => {
+  const response = await axios.patch(`${url_base}/agents/${id}`, agentData);
+  return response.data; // Return the updated agent object
+};
+
+export const useUpdateAgent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateAgent,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    },
+    onError: (error) => {
+      console.error('Error updating agent:', error);
     },
   });
 };

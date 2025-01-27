@@ -1,14 +1,17 @@
 from typing import  List
 import logging
+import os
 
 from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base, get_managed_db
-from pydanticModels import AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, WebhookPayloadSchema
+from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, WebhookPayloadSchema
 from messaging.hooks import evaluate_conversation, receive_message_event
 from config import WEBHOOK_TOKEN
 
@@ -22,8 +25,19 @@ app.add_middleware(
         allow_headers=["*"],
 )
 
+webhook_logger = logging.getLogger("webhook_logger")
+webhook_logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler("webhook.log", mode="a")
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+webhook_logger.addHandler(file_handler)
+
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 Base.metadata.create_all(bind=engine)
+
+app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+app.mount("/front", StaticFiles(directory="frontend/dist", html=True), name="root")
 
 @app.post("/agents", response_model=AgentSchema)
 def create_agent(agent: AgentCreateSchema, db: Session = Depends(get_db)):
@@ -36,6 +50,15 @@ def create_agent(agent: AgentCreateSchema, db: Session = Depends(get_db)):
 @app.get("/agents", response_model=List[AgentSchema])
 def get_agents(db: Session = Depends(get_db)):
     return db.execute(select(Agent)).scalars().all()
+
+@app.patch("/agents/{agent_id}", response_model=AgentSchema)
+def patch_agent(agent_id: int, update: AgentBaseSchema, db: Session = Depends(get_db)):
+    update_data = update.model_dump(exclude_unset=True)
+    update_dict = {getattr(Agent, key): value for key, value in update_data.items()}
+
+    db.query(Agent).filter_by(id=agent_id).update(update_dict)
+    db.commit()
+    return db.query(Agent).filter_by(id=agent_id).first()
 
 @app.delete("/agents/{agent_id}")
 def delete_agent(agent_id: int, db: Session = Depends(get_db)):
@@ -84,6 +107,7 @@ def verify_subscription(
 def handle_webevent(event: WebhookPayloadSchema, background_tasks: BackgroundTasks):
     print("Pretty-printed Webhook event:")
     print(event.model_dump_json(indent=2))
+    webhook_logger.info(event.model_dump_json())
 
     if event.object == "instagram" and event.entry[0].changes[0].field == "messages":
         with get_managed_db() as session:

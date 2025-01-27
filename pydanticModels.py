@@ -1,14 +1,25 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Literal
+import json
+
+from pydantic import BaseModel, Json, field_validator, ValidationError
 
 # Pydantic models for Agent
 class AgentBaseSchema(BaseModel):
     name: str
     instructions: str
-    model: str
+    model: Literal["claude-3-5-sonnet-latest"] 
     identity: str
     tools: Any
+
+    @field_validator('tools')
+    def validate_json(cls, value):
+        if isinstance(value, str):
+            value = json.loads(value)
+
+        assert isinstance(value, (list))
+        assert len(value) == 0 or isinstance(value[0], dict)
+        return value 
 
 class AgentCreateSchema(AgentBaseSchema):
     pass

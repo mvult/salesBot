@@ -258,6 +258,16 @@ TOOLS = [{
   }
 }]
 
+TOOLS2 = [{
+            "name": "hand_off_to_human",
+            "description": "To be used whenever you feel like a human should step and take over the conversation.  This typically happens when someone asks a question you have no response to, they say something completely bizarre, or they get aggressive.",
+            "input_schema": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+]
+
 def get_quote(make, model, year, mileage, driver_age):
     """Returns the premium per month in USD"""
     # You can call an http endpoint or a database to get the quote.

@@ -2,7 +2,7 @@ from contextlib import contextmanager, asynccontextmanager
 from typing import AsyncGenerator
 import logging
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, scoped_session, Session, DeclarativeBase
 
@@ -11,6 +11,9 @@ ASYNC_DATABASE_URL = "sqlite+aiosqlite:///./test.db"  # Async SQLite URL
 
 # Create the database engine
 engine = create_engine(DATABASE_URL)
+
+with engine.connect() as connection:
+    connection.execute(text("PRAGMA foreign_keys=ON"))
 
 # Create a configured "Session" class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,8 +25,7 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
-# Base class for models
-# Base = declarative_base()
+
 class Base(DeclarativeBase):
     pass
 

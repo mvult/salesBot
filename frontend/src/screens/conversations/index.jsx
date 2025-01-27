@@ -2,7 +2,7 @@
 export const ConversationList = () => {
   return (
     <>
-      Agent List
+      Coming Soon...
     </>
   )
 }

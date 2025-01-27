@@ -80,6 +80,8 @@ def bundle_messages(msgs: list[Message]) -> list[Message]:
 
         current_content += " " + msg.content
 
+    new_msgs.append(Message(content=current_content, role=current_role, bundle_id=current_bundle_id))
+
     return new_msgs
 
 

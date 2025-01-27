@@ -19,7 +19,7 @@ class Agent(Base):
 class Conversation(Base):
     __tablename__ = "conversation"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    agent_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=False)
+    agent_id: Mapped[int] = mapped_column(ForeignKey("agent.id", ondelete="CASCADE"), nullable=False)
     outcome: Mapped[str | None] = mapped_column(String, nullable=True)
     platform: Mapped[str | None] = mapped_column(String, nullable=True)
     create_time: Mapped[datetime] = mapped_column(DateTime(), default=func.now())
@@ -32,7 +32,7 @@ class Conversation(Base):
 class Message(Base):
     __tablename__ = "message"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    conversation_id: Mapped[str] = mapped_column(ForeignKey("conversation.id"), nullable=False)
+    conversation_id: Mapped[str] = mapped_column(ForeignKey("conversation.id", ondelete="CASCADE"), nullable=False)
     content: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[str] = mapped_column(String, nullable=False)
     source: Mapped[str] = mapped_column(String, nullable=False)
