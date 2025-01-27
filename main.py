@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base, get_managed_db
-from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, WebhookPayloadSchema
+from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, IGMessagePayloadSchema
 from messaging.hooks import evaluate_conversation, receive_message_event
 from config import WEBHOOK_TOKEN
 
@@ -104,27 +104,27 @@ def verify_subscription(
     else:
         return HTTPException(status_code=403, detail="Invalid verify token")
 
-@app.post("/webhooks")
-def handle_webevent(event: WebhookPayloadSchema, background_tasks: BackgroundTasks):
+@app.post("/instaMessages")
+def handle_webevent(event: IGMessagePayloadSchema, background_tasks: BackgroundTasks):
     print("Pretty-printed Webhook event:")
     print(event.model_dump_json(indent=2))
     webhook_logger.info(event.model_dump_json())
 
-    if event.object == "instagram" and event.entry[0].changes[0].field == "messages":
+    if event.object == "instagram":
         with get_managed_db() as session:
             convo = receive_message_event(event, session)
             background_tasks.add_task(evaluate_conversation, convo.id, convo.client_id)
 
     return {"message": "JSON received"}
 
-@app.post("/webhooks")
-def handle_webevent(event: Request):
-    print(event)
-    try:
-        json_body = asyncio.run(event.json())
-        result = WebhookPayloadSchema.model_validate_json(json_body)
-        print("Valid", result)
-    except Exception as e:
-        print(e)
-
-    return {"message": "JSON received"}
+# @app.post("/webhooks")
+# def handle_webevent(event: Request):
+#     print(event)
+#     try:
+#         json_body = asyncio.run(event.json())
+#         result = WebhookPayloadSchema.model_validate_json(json_body)
+#         print("Valid", result)
+#     except Exception as e:
+#         print(e)
+#
+#     return {"message": "JSON received"}

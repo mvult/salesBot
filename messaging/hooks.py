@@ -91,7 +91,7 @@ def receive_message_event(event: WebhookPayloadSchema, session:Session) -> Conve
 
     print(event.model_dump_json(indent=2))
 
-    content = event.entry[0].changes[0].value.message
+    content = event.entry[0].messaging[0].message.text
     if not content:
         raise Exception("No message content found in message")
 

@@ -137,6 +137,15 @@ class Entry(BaseModel):
     time: int
     messaging: List[MessagingEntry]
 
-class WebhookPayloadSchema(BaseModel):
+class IGMessagePayloadSchema(BaseModel):
     entry: List[Entry]
     object: str
+
+    def get_text_content(self) -> str:
+        return self.entry[0].messaging[0].message.text
+    
+    def get_sender_id(self) ->str:
+        return self.entry[0].messaging[0].sender.id
+
+    def get_recipient_id(self) ->str:
+        return self.entry[0].messaging[0].recipient.id
