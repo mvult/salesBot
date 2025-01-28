@@ -1,6 +1,8 @@
 import uuid
 import re
 
+from nltk.tokenize import sent_tokenize
+
 from persistence.models import Message
 
 def add_bundle_info(msgs: list[Message])-> list[Message]:
@@ -27,34 +29,47 @@ def add_bundle_info(msgs: list[Message])-> list[Message]:
     return msgs
 
 def split_llm_response(text: str) -> list[str]:
-    # Split text into sentences
-    sentences = re.split(r'(?<=[.!?]) +', text)
-    
-    messages = []
-    current_group = []
-    
-    for sentence in sentences:
-        # Normalize whitespace and punctuation spacing
-        stripped = re.sub(r'([.!?])\s+', r'\1', sentence.strip())
-        if not stripped:
-            continue
-        
-        # Handle long sentences
-        if len(stripped) > 160:
-            if current_group:
-                messages.append(" ".join(current_group))
-                current_group = []
-            messages.append(stripped)
-        else:
-            current_group.append(stripped)
-            if len(current_group) == 2:
-                messages.append(" ".join(current_group))
-                current_group = []
-    
-    if current_group:
-        messages.append(" ".join(current_group))
-    
-    return messages
+    sentences = sent_tokenize(text)
+    ret = []
+    current = ""
+
+    for s in sentences:
+        current += s + " "
+        if len(current) > 160:
+            ret.append(current.strip())
+            current = ""
+    if current != "": ret.append(current.strip())
+
+    return ret
+# def split_llm_response(text: str) -> list[str]:
+#     # Split text into sentences
+#     sentences = re.split(r'(?<=[.!?]) +', text)
+#
+#     messages = []
+#     current_group = []
+#
+#     for sentence in sentences:
+#         # Normalize whitespace and punctuation spacing
+#         stripped = re.sub(r'([.!?])\s+', r'\1', sentence.strip())
+#         if not stripped:
+#             continue
+#
+#         # Handle long sentences
+#         if len(stripped) > 160:
+#             if current_group:
+#                 messages.append(" ".join(current_group))
+#                 current_group = []
+#             messages.append(stripped)
+#         else:
+#             current_group.append(stripped)
+#             if len(current_group) == 2:
+#                 messages.append(" ".join(current_group))
+#                 current_group = []
+#
+#     if current_group:
+#         messages.append(" ".join(current_group))
+#
+#     return messages
 
 def bundle_messages(msgs: list[Message]) -> list[Message]:
     new_msgs = []

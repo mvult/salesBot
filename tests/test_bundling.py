@@ -6,9 +6,10 @@ from messaging.bundling import split_llm_response  # Update import
     ("", []),
     ("Single sentence.", ["Single sentence."]),
     ("First. Second.", ["First. Second."]),
-    ("One. Two. Three.", ["One. Two.", "Three."]),
-    ("A. B. C. D.", ["A. B.", "C. D."]),
+    ("One. Two. Three.", ["One. Two. Three."]),
+    ("A. B. C. D.", ["A. B. C. D."]),
     ('Check out my book "How Ukraine Survived": https://amzn.to/47gnlEf. You can also read it for free by signing up for a Kindle Unlimited trial at https://amzn.to/3QMsBr8. (I use affiliate links, meaning I earn a commission when you make a transaction through them. Even if you read for free, you are still supporting the channel.)',['Check out my book "How Ukraine Survived": https://amzn.to/47gnlEf. You can also read it for free by signing up for a Kindle Unlimited trial at https://amzn.to/3QMsBr8.',"(I use affiliate links, meaning I earn a commission when you make a transaction through them. Even if you read for free, you are still supporting the channel.)"]),
+    ("Nosotros ofrecemos entrenamiento personalizado dentro de nuestras propias estaciones en gimnasios asociados. Cada usuario tiene su espacio individual para en trenar con la guía de su entrenador personal, enfocándonos principalmente en ejercicios de peso libre y desarrollo de fuerza y movilidad. Actualmente estamos en dos ubicaciones: Condesa y Narvarte. ¿Cuál te quedaría más cerca? 😊", ["Nosotros ofrecemos entrenamiento personalizado dentro de nuestras propias estaciones en gimnasios asociados. Cada usuario tiene su espacio individual para en trenar con la guía de su entrenador personal, enfocándonos principalmente en ejercicios de peso libre y desarrollo de fuerza y movilidad.", "Actualmente estamos en dos ubicaciones: Condesa y Narvarte. ¿Cuál te quedaría más cerca? 😊"])
     #
     # # Long sentence handling
     # (f"Short. {long_sentence()}. Another.", 

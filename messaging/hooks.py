@@ -93,8 +93,6 @@ def receive_message_event(event: IGMessagePayloadSchema, session:Session) -> Con
     convo = get_relevant_conversation(client_id, session)
     print(convo.client_id, convo.client_name)
 
-    print(event.model_dump_json(indent=2))
-
     m = Message(conversation_id=convo.id, content=event.get_text_content(), role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id)
 
     session.add(m)
