@@ -5,11 +5,12 @@ from persistence.models import Message, Conversation
 from config import SALES_BOT_MODE, EVENLIFT_IG_ID, IG_ACCESS_TOKEN, NOTIFICATION_EMAIL, NOTIFICATION_EMAIL_PASSWORD 
 
 def send_message_to_user(m: Message, client_id: str):
+    print("Client ID", client_id)
     if SALES_BOT_MODE != "live":
         print(f"Would send message to insta, but in test mode {m.content}")
         return
 
-    print(f"Sending to client_id {client_id} from {EVENLIFT_IG_ID}")
+    print(f"Sending to client_id {client_id} from {EVENLIFT_IG_ID} content: {m.content}")
 
     r = requests.post(f"https://graph.instagram.com/v22.0/{EVENLIFT_IG_ID}/messages", 
                   headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           

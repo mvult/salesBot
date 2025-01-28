@@ -17,7 +17,7 @@ from messaging.bundling import add_bundle_info, split_llm_response, bundle_messa
 from messaging.external import send_message_to_user, send_email_to_operators
 from messaging.utils import calculate_typing_delay_seconds
 
-MESSAGE_ACCUMULATION_SECONDS = 25
+MESSAGE_ACCUMULATION_SECONDS = 10
 
 async def evaluate_conversation(convo_id: int, client_id: str):
     print("In async!")
@@ -87,7 +87,11 @@ async def evaluate_conversation(convo_id: int, client_id: str):
         
 def receive_message_event(event: IGMessagePayloadSchema, session:Session) -> Conversation:
     client_id, sender_id, recipient_id = get_client_id(event)
+    
+    print(f"\n\nclient_id: {client_id}, sender_id: {sender_id}, recipient_id: {recipient_id}\n\n")
+
     convo = get_relevant_conversation(client_id, session)
+    print(convo.client_id, convo.client_name)
 
     print(event.model_dump_json(indent=2))
 

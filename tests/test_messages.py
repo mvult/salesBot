@@ -9,22 +9,16 @@ def msg_payload(sender_id, recipient_id, message):
             {
                 "id": "0",
                 "time": int(datetime.datetime.now().timestamp()),
-                "changes": [
+                "messaging": [
                     {
-                        "field": "messages",
-                        "value": {
-                            "sender": {
-                                "id": sender_id
-                            },
-                            "recipient": {
-                                "id": recipient_id
-                            },
-                            "timestamp": f"{int(datetime.datetime.now().timestamp())}",
-                            "message": {
-                                "mid": "random_mid",
-                                "text": message
-                            }
-                        }
+                        "message": {"mid": "an_id","text": "this is a message"},
+                        "sender": {
+                            "id": sender_id
+                        },
+                        "recipient": {
+                            "id": recipient_id
+                        },
+                        "timestamp": int(datetime.datetime.now().timestamp()),
                     }
                 ]
             }
@@ -33,12 +27,16 @@ def msg_payload(sender_id, recipient_id, message):
     }
 
 def test_post_webhook_instagram(base_url, headers):
-    r = requests.post(f"{base_url}/webhooks", headers=headers,json=msg_payload("12334", "23245", "Hello there"))
+
+    r = requests.post(f"{base_url}/webhooks", headers=headers,json=msg_payload("640673465068123","17841411286042347", "Hello there"))
     print(r.json())
     assert r.status_code == 200
     
     r = requests.post(f"{base_url}/webhooks", headers=headers,json=msg_payload("23245","12334", "Hello yourself"))
     assert r.status_code == 200
+
+
+
 
 def test_multiple_messages(base_url, headers, evenlift_ig_id):
     new_user_id = str(uuid.uuid4())

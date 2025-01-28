@@ -35,6 +35,7 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
 
     print("messages\n\n\n\n")
     print(messages, len(messages))
+    print(agent.tools)
 
     try:
         response: AnthropicResponse = client.messages.create(

@@ -55,14 +55,15 @@ def get_conversations():
 #
 #
 # r = requests.post(640673465068123
-frost_id = 640673465068123 
-evenlit_id = 17841411286042347
+client_id = 640673465068123 
+evenlift_id = 17841411286042347
 
+print(f"Sending to client_id {client_id} from {evenlift_id} content: content")
 
-r = requests.post(f"https://graph.instagram.com/v22.0/{evenlit_id}/messages", 
+r = requests.post(f"https://graph.instagram.com/v22.0/{evenlift_id}/messages", 
                   headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           
                   params={'access_token': IG_ACCESS_TOKEN}, 
-                  json={"recipient":{"id":frost_id}, "message": {"text": "Return message fro. evenlift"}})
+                  json={"recipient":{"id":client_id}, "message": {"text": "Return message fro. evenlift"}})
 # r = get_conversations()
 # r = get_message(MESSAGE_ID)
 
