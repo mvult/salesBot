@@ -71,9 +71,9 @@ async def evaluate_conversation(convo_id: int, client_id: str):
                             recipient_id=client_id,
                             ) for m in new_msg_texts]
 
-        for m in new_msgs:
+        for i, m in enumerate(new_msgs):
             try:
-                if SALES_BOT_MODE == "live":
+                if SALES_BOT_MODE == "live" and i != 0:
                     await asyncio.sleep(calculate_typing_delay_seconds(m.content))
                 send_message_to_user(m, convo.client_id)
                 m.create_time = datetime.now(UTC)
