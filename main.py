@@ -14,7 +14,7 @@ from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base, get_managed_db
 from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, IGMessagePayloadSchema
 from messaging.hooks import evaluate_conversation, receive_message_event
-from config import WEBHOOK_TOKEN
+from config import WEBHOOK_TOKEN, EVENLIFT_IG_ID
 
 app = FastAPI()
 
@@ -110,7 +110,7 @@ def handle_webevent(event: IGMessagePayloadSchema, background_tasks: BackgroundT
     print(event.model_dump_json(indent=2))
     webhook_logger.info(event.model_dump_json())
 
-    if event.object == "instagram":
+    if event.object == "instagram" and event.get_recipient_id() == EVENLIFT_IG_ID:
         with get_managed_db() as session:
             convo = receive_message_event(event, session)
             background_tasks.add_task(evaluate_conversation, convo.id, convo.client_id)

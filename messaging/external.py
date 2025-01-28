@@ -1,11 +1,13 @@
-import requests
+from datetime import datetime
+
 import yagmail
+import requests
 
 from persistence.models import Message, Conversation
 from config import SALES_BOT_MODE, EVENLIFT_IG_ID, IG_ACCESS_TOKEN, NOTIFICATION_EMAIL, NOTIFICATION_EMAIL_PASSWORD 
 
 def send_message_to_user(m: Message, client_id: str):
-    print("Client ID", client_id)
+    print(f"Sending '{m.content[:10]}'- message to {client_id} at {datetime.now()}")
     if SALES_BOT_MODE != "live":
         print(f"Would send message to insta, but in test mode {m.content}")
         return

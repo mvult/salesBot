@@ -24,7 +24,7 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
     # if SALES_BOT_MODE != "live":
     #     print("Skipping llm")
     #     return "Test message"
-    print("Getting to LLM")
+    print(f"Getting to LLM with {len(messages)} messages")
 
     with get_managed_db() as db:
         agent = db.query(Agent).filter_by(id=agent_id).one()
