@@ -9,11 +9,16 @@ def send_message_to_user(m: Message, client_id: str):
         print(f"Would send message to insta, but in test mode {m.content}")
         return
 
+    print(f"Sending to client_id {client_id} from {EVENLIFT_IG_ID}")
+
     r = requests.post(f"https://graph.instagram.com/v22.0/{EVENLIFT_IG_ID}/messages", 
                   headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           
+                  params={'access_token': IG_ACCESS_TOKEN}, 
                   json={"recipient":{"id":client_id}, "message": {"text": m.content}})
     if not r.ok:
         raise Exception(f"Error sending message to user: {r.text}")
+
+
 
 def send_email_to_operators(convo: Conversation, to: str = "rodrigo@evenlift.io"):
     print("Sending email")
