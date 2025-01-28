@@ -7,7 +7,7 @@ from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from pydanticModels import WebhookPayloadSchema
+from pydanticModels import IGMessagePayloadSchema 
 from persistence.models import Conversation, Message
 from persistence.db import get_async_db
 from config import EVENLIFT_IG_ID, SALES_BOT_MODE
@@ -85,17 +85,13 @@ async def evaluate_conversation(convo_id: int, client_id: str):
 
 
         
-def receive_message_event(event: WebhookPayloadSchema, session:Session) -> Conversation:
+def receive_message_event(event: IGMessagePayloadSchema, session:Session) -> Conversation:
     client_id, sender_id, recipient_id = get_client_id(event)
     convo = get_relevant_conversation(client_id, session)
 
     print(event.model_dump_json(indent=2))
 
-    content = event.entry[0].messaging[0].message.text
-    if not content:
-        raise Exception("No message content found in message")
-
-    m = Message(conversation_id=convo.id, content=content.text, role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id)
+    m = Message(conversation_id=convo.id, content=event.get_text_content(), role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id)
 
     session.add(m)
     session.commit()
@@ -126,9 +122,9 @@ def get_relevant_conversation(client_id: str, session: Session) -> Conversation:
 
         
 
-def get_client_id(event: WebhookPayloadSchema) -> tuple[str, str, str]:
-    sender_id = event.entry[0].changes[0].value.sender.id
-    recipient_id = event.entry[0].changes[0].value.recipient.id
+def get_client_id(event: IGMessagePayloadSchema) -> tuple[str, str, str]:
+    sender_id = event.get_sender_id()
+    recipient_id = event.get_recipient_id()
     if sender_id != EVENLIFT_IG_ID:
         return sender_id, sender_id, recipient_id
     return recipient_id, sender_id, recipient_id

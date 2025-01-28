@@ -104,7 +104,7 @@ def verify_subscription(
     else:
         return HTTPException(status_code=403, detail="Invalid verify token")
 
-@app.post("/instaMessages")
+@app.post("/webhooks")
 def handle_webevent(event: IGMessagePayloadSchema, background_tasks: BackgroundTasks):
     print("Pretty-printed Webhook event:")
     print(event.model_dump_json(indent=2))
