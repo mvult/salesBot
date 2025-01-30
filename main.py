@@ -14,6 +14,7 @@ from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base, get_managed_db
 from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, IGMessagePayloadSchema
 from messaging.hooks import evaluate_conversation, receive_message_event
+from outbound.hooks import send_reactivation_outbound
 from config import WEBHOOK_TOKEN, EVENLIFT_IG_ID
 
 app = FastAPI()
@@ -130,6 +131,11 @@ def handle_webevent(_event: Request, background_tasks: BackgroundTasks):
         print(f'Unexpected webhook.  Raw JSON below\n{raw_json}\n') 
 
     return {"message": "JSON received"}
+
+@app.get("/simulateOutbound")
+def handle_outbound(db: Session = Depends(get_db)):
+    send_reactivation_outbound(db)
+    return {"message": "Outreach simulated"}
 
 # @app.post("/webhooks")
 # def handle_webevent(event: Request):
