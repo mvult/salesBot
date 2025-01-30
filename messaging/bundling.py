@@ -41,41 +41,14 @@ def split_llm_response(text: str) -> list[str]:
     if current != "": ret.append(current.strip())
 
     return ret
-# def split_llm_response(text: str) -> list[str]:
-#     # Split text into sentences
-#     sentences = re.split(r'(?<=[.!?]) +', text)
-#
-#     messages = []
-#     current_group = []
-#
-#     for sentence in sentences:
-#         # Normalize whitespace and punctuation spacing
-#         stripped = re.sub(r'([.!?])\s+', r'\1', sentence.strip())
-#         if not stripped:
-#             continue
-#
-#         # Handle long sentences
-#         if len(stripped) > 160:
-#             if current_group:
-#                 messages.append(" ".join(current_group))
-#                 current_group = []
-#             messages.append(stripped)
-#         else:
-#             current_group.append(stripped)
-#             if len(current_group) == 2:
-#                 messages.append(" ".join(current_group))
-#                 current_group = []
-#
-#     if current_group:
-#         messages.append(" ".join(current_group))
-#
-#     return messages
+
 
 def bundle_messages(msgs: list[Message]) -> list[Message]:
     new_msgs = []
     current_bundle_id = None
     current_role = None
     current_content = ""
+    current_time = msgs[0].create_time
 
     for msg in msgs:
         assert msg.bundle_id, "All messages must have a bundle_id"
@@ -84,18 +57,23 @@ def bundle_messages(msgs: list[Message]) -> list[Message]:
             current_bundle_id = msg.bundle_id
             current_role = msg.role
             current_content = msg.content
+            current_time = msg.create_time
             continue
 
         if current_bundle_id and current_bundle_id != msg.bundle_id:
-            new_msgs.append(Message(content=current_content, role=current_role, bundle_id=current_bundle_id))
+            new_msgs.append(Message(content=current_content, role=current_role, bundle_id=current_bundle_id, create_time=current_time))
             current_bundle_id = msg.bundle_id
             current_role = msg.role
             current_content = msg.content
+            current_time = msg.create_time
             continue
 
         current_content += " " + msg.content
 
-    new_msgs.append(Message(content=current_content, role=current_role, bundle_id=current_bundle_id))
+    for m in msgs:
+        assert m.create_time is not None
+
+    new_msgs.append(Message(content=current_content, role=current_role, bundle_id=current_bundle_id, create_time=current_time))
 
     return new_msgs
 

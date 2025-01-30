@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime, timedelta, UTC, timezone
-from typing import cast
 
 from messaging.utils import calculate_typing_delay_seconds
 from sqlalchemy.exc import NoResultFound, MultipleResultsFound
@@ -12,9 +11,9 @@ from persistence.models import Conversation, Message
 from persistence.db import get_async_db
 from config import EVENLIFT_IG_ID, SALES_BOT_MODE
 from agents.hooks import get_optimized_agent
-from llm import generate_llm_message, HANDOFF_MESSAGE
+from llm.hooks import generate_llm_message 
 from messaging.bundling import add_bundle_info, split_llm_response, bundle_messages
-from messaging.external import send_message_to_user, send_email_to_operators
+from messaging.external import send_message_to_user 
 from messaging.utils import calculate_typing_delay_seconds, handoff
 
 MESSAGE_ACCUMULATION_SECONDS = 7
@@ -41,7 +40,9 @@ async def evaluate_conversation(convo_id: int, client_id: str):
         convo = _convo.scalars().one()
 
         if any(m.has_attachment and m.role == "user" for m in msgs):
+            print("Message has attachment")
             if not convo.handed_off:
+                print("Handing off")
                 await handoff(convo, db)
             return
 
@@ -54,10 +55,9 @@ async def evaluate_conversation(convo_id: int, client_id: str):
 
         try:
             bundled_msgs = bundle_messages(list(msgs))
-            llm_response = generate_llm_message(bundled_msgs, convo.agent_id)
-            if llm_response == HANDOFF_MESSAGE:
+            llm_response, hand_off = generate_llm_message(bundled_msgs, convo.agent_id)
+            if hand_off:
                 await handoff(convo, db)
-                return
 
         except Exception as e:
             print("Error generating llm response", e)

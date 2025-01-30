@@ -12,7 +12,7 @@ def send_reactivation_outbound(db: Session):
     print(conversations)
     for c in conversations:
         prompt = build_conversation_prompt(db, c)
-        print(prompt)
+        # print(prompt)
         # send_message(c.client_id, prompt)
         # print(f"Sent reactivation message to {c.client_id}")
     

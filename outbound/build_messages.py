@@ -1,7 +1,11 @@
 from datetime import datetime
+from typing import cast
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from persistence.models import Conversation, Message
+from llm.utils import summarize_conversation
 
 def build_conversation_prompt(db: Session, conversation: Conversation) -> str:
     """
@@ -41,17 +45,10 @@ La conversación es la siguiente:
     conversation_parts.append(instruction)
     
     # Format each message with role and timestamp
-    for msg in messages:
-        timestamp = msg.create_time.strftime("%Y-%m-%d %H:%M:%S")
-        role_prefix = {
-            "assistant": "Asistente de Ventas",
-            "user": "Cliente",
-            "system": "Sistema"
-        }.get(msg.role, msg.role)
-        
-        formatted_message = f"[{timestamp}] {role_prefix}: {msg.content}"
-        conversation_parts.append(formatted_message)
+    summarized_convo = summarize_conversation(cast(list, messages))
+    conversation_parts.append(summarized_convo)
     
     # Join all parts with double newlines for clarity
     return "\n\n".join(conversation_parts)
+
 

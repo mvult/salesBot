@@ -57,6 +57,7 @@ No sé si me di a entender o si te hice bolas 😅
 </static_context>
 """
 
+
 EXAMPLES = """
 Aqui hay unos ejemplos de chats exitosas donde al fin, el cliente agendo una llamada:
 

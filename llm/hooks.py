@@ -2,16 +2,15 @@ import os
 from typing import cast, Literal
 import logging
 
-from anthropic import Anthropic
 from anthropic.types.message_param import MessageParam
 from anthropic.types.message import Message as AnthropicResponse
 
 from config import SALES_BOT_MODE
+from llm.handoff import get_handoff_message
 from persistence.models import Message, Agent
 from persistence.db import get_managed_db
+from llm.clients import anthropic_client
 
-client = Anthropic(api_key=os.getenv("ANTHROPIC_KEY"))
-HANDOFF_MESSAGE = "Es buena pregunta. No estoy 100% segura. Déjame preguntarle a mi jefe. Vuelvo en unos minutos."
 
 llm_logger = logging.getLogger("llm_responses")
 llm_logger.setLevel(logging.DEBUG)
@@ -20,10 +19,10 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 file_handler.setFormatter(formatter)
 llm_logger.addHandler(file_handler)
 
-def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> str:
+def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> tuple[str, bool]:
     if SALES_BOT_MODE != "live":
         print("Skipping llm")
-        return "Test message"
+        return "Test message", False
     print(f"Getting to LLM with {len(messages)} messages")
 
     with get_managed_db() as db:
@@ -32,9 +31,8 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
     llm_messages: list[MessageParam] = [MessageParam(role=cast(Literal['user', 'assistant'], m.role), content= m.content) for m in messages]
     llm_messages: list[MessageParam] = [MessageParam(role="user", content= agent.instructions), MessageParam(role="assistant", content="Understood"), *llm_messages]
     
-
     try:
-        response: AnthropicResponse = client.messages.create(
+        response: AnthropicResponse = anthropic_client.messages.create(
             model=agent.model,
             system=agent.identity,
             max_tokens=max_tokens,
@@ -45,11 +43,11 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
         print("LLM RESPONSE\n\n", response)
         llm_logger.debug(response)
         if asks_for_tool_use(response):
-            return HANDOFF_MESSAGE
+            return get_handoff_message(messages, agent.model), True
 
         if response.content[0].type == "text":
             print(f"Received LLM msg:\n ${response.content[0].text}\n--end--\n\n")
-            return response.content[0].text
+            return response.content[0].text, False
         else:
             raise Exception("An error occurred: Unexpected response type")
     except Exception as e:
@@ -68,5 +66,4 @@ def asks_for_tool_use(response: AnthropicResponse) -> bool:
     except Exception as e:
         print("Error in asks_for_tool_use", e)
         return False
-
 

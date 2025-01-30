@@ -24,7 +24,10 @@ def send_message_to_user(m: Message, client_id: str):
 
 
 def send_email_to_operators(convo: Conversation, to: str = "rodrigo@evenlift.io"):
-    print("Sending email")
+    if SALES_BOT_MODE != "live":
+        print(f"Would send email to insta")
+        return
+
     yag = yagmail.SMTP(NOTIFICATION_EMAIL, NOTIFICATION_EMAIL_PASSWORD)
     yag.send(
         to=to,
