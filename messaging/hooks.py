@@ -92,7 +92,7 @@ def receive_message_event(event: IGMessagePayloadSchema, session:Session) -> Con
 
     convo = get_relevant_conversation(client_id, session)
 
-    m = Message(conversation_id=convo.id, content=event.get_text_content(), role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id)
+    m = Message(conversation_id=convo.id, content=event.get_text_content(), role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id, has_attachment=event.has_attachment())
 
     session.add(m)
     session.commit()

@@ -40,4 +40,5 @@ class Message(Base):
     sender_id: Mapped[str] = mapped_column(String, nullable=False)
     recipient_id: Mapped[str] = mapped_column(String, nullable=False)
     bundle_id: Mapped[str | None] = mapped_column(String)
+    has_attachment: Mapped[bool] = mapped_column(Boolean, default=False)
 

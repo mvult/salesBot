@@ -129,6 +129,7 @@ def handle_webevent(_event: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         print("Webhook error", e)
         print(f'Unexpected webhook.  Raw JSON below\n{raw_json}\n') 
+        raise HTTPException(status_code=422, detail=f"Unprocessable entity: {e}")
 
     return {"message": "JSON received"}
 

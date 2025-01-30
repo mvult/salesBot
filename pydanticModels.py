@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Any, Literal
+from typing import Optional, List, Any, Literal, cast
 import json
 
 from pydantic import BaseModel, Json, field_validator, ValidationError
@@ -73,50 +73,7 @@ class MessageSchema(MessageBaseSchema):
     class Config:
         from_attributes = True
     
-
-# # Define models for the nested structures
-# class Sender(BaseModel):
-#     id: str
-#
-# class Recipient(BaseModel):
-#     id: str
-#
-# class Message(BaseModel):
-#     mid: str
-#     text: str
-#
-# class Reaction(BaseModel):
-#     mid: str
-#     action: str
-#     reaction: str
-#     emoji: str
-#
-# class Read(BaseModel):
-#     mid: int
-#
-# # This is where the different events differ in structure.  message vs. reaction vs read
-# class Value(BaseModel):
-#     sender: Sender
-#     recipient: Recipient
-#     timestamp: str
-#     message: Optional[Message] = None
-#     reaction: Optional[Reaction] = None
-#     read: Optional[Read] = None
-#
-# class Change(BaseModel):
-#     field: str
-#     value: Value
-#
-# class Entry(BaseModel):
-#     id: str
-#     time: int
-#     changes: List[Change]
-#
-# class WebhookPayloadSchema(BaseModel):
-#     entry: List[Entry]
-#     object: str
-#
-# Define models for the nested structures
+# IGMessagePayloadSchema
 class Sender(BaseModel):
     id: str
 
@@ -126,7 +83,8 @@ class Recipient(BaseModel):
 # This is where the different events differ in structure.  message vs. reaction vs read
 class WebhookMessage(BaseModel):
     mid: str
-    text: str
+    text: Optional[str] = None
+    attachments: Optional[Any] = None
 
 class MessagingEntry(BaseModel):
     message: WebhookMessage
@@ -143,8 +101,15 @@ class IGMessagePayloadSchema(BaseModel):
     entry: List[Entry]
     object: str
 
+    def has_attachment(self) -> bool:
+        if self.entry[0].messaging[0].message.attachments is not None:
+            return True
+        return False
+
     def get_text_content(self) -> str:
-        return self.entry[0].messaging[0].message.text
+        if self.entry[0].messaging[0].message.attachments is not None:
+            return "<Message was an attachment>"
+        return cast(str, self.entry[0].messaging[0].message.text)
     
     def get_sender_id(self) ->str:
         return self.entry[0].messaging[0].sender.id
