@@ -15,7 +15,7 @@ from agents.hooks import get_optimized_agent
 from llm import generate_llm_message, HANDOFF_MESSAGE
 from messaging.bundling import add_bundle_info, split_llm_response, bundle_messages
 from messaging.external import send_message_to_user, send_email_to_operators
-from messaging.utils import calculate_typing_delay_seconds
+from messaging.utils import calculate_typing_delay_seconds, handoff
 
 MESSAGE_ACCUMULATION_SECONDS = 7
 
@@ -33,12 +33,17 @@ async def evaluate_conversation(convo_id: int, client_id: str):
         
         msgs = _msgs.scalars().all()
 
-        if len(msgs) == 0:return 
+        if len(msgs) == 0: return 
 
         latest = msgs[-1]
 
         _convo = await db.execute(select(Conversation).filter_by(id=convo_id))
         convo = _convo.scalars().one()
+
+        if any(m.has_attachment and m.role == "user" for m in msgs):
+            if not convo.handed_off:
+                await handoff(convo, db)
+            return
 
         if should_skip_message(convo, latest):
             print("SKIPPING")
@@ -51,9 +56,8 @@ async def evaluate_conversation(convo_id: int, client_id: str):
             bundled_msgs = bundle_messages(list(msgs))
             llm_response = generate_llm_message(bundled_msgs, convo.agent_id)
             if llm_response == HANDOFF_MESSAGE:
-                convo.handed_off = True
-                await db.commit()
-                send_email_to_operators(cast(Conversation, convo))
+                await handoff(convo, db)
+                return
 
         except Exception as e:
             print("Error generating llm response", e)
