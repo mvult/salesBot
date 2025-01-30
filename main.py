@@ -1,4 +1,4 @@
-from typing import  List
+from typing import  List, Optional
 import logging
 import os
 import asyncio
@@ -68,8 +68,9 @@ def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     db.commit()
     return 
 
+
 @app.get("/conversations", response_model=List[ConversationSchema])
-def get_conversations(db: Session = Depends(get_db), client_id: str = Query(...)):
+def get_conversations(db: Session = Depends(get_db), client_id: Optional[str] = Query(None)):
     if client_id: 
         return [db.execute(select(Conversation).filter_by(client_id=client_id)).scalars().first()]
     return db.query(Conversation).all()
@@ -86,6 +87,13 @@ def patch_conversation(convo_id: int, update: ConversationPatchSchema, db: Sessi
     db.query(Conversation).filter_by(id=convo_id).update(update_dict)
     db.commit()
     return db.query(Conversation).filter_by(id=convo_id).first()
+
+@app.delete("/conversations/{convo_id}")
+def delete_conversation(convo_id: int, db: Session = Depends(get_db)):
+    agent = db.query(Conversation).filter_by(id=convo_id).first()
+    db.delete(agent)
+    db.commit()
+    return 
 
 @app.get("/conversations/{convo_id}/messages", response_model=List[MessageSchema])
 def get_messages(convo_id: int, db: Session = Depends(get_db)):
@@ -105,15 +113,21 @@ def verify_subscription(
         return HTTPException(status_code=403, detail="Invalid verify token")
 
 @app.post("/webhooks")
-def handle_webevent(event: IGMessagePayloadSchema, background_tasks: BackgroundTasks):
-    print("Pretty-printed Webhook event:")
-    print(event.model_dump_json(indent=2))
-    webhook_logger.info(event.model_dump_json())
+def handle_webevent(_event: Request, background_tasks: BackgroundTasks):
+    raw_json = asyncio.run(_event.json())
+    try:
+        event= IGMessagePayloadSchema.model_validate(raw_json)
+        print("Pretty-printed Webhook event:")
+        print(event.model_dump_json(indent=2))
+        webhook_logger.info(event.model_dump_json())
 
-    if event.object == "instagram" and event.get_recipient_id() == EVENLIFT_IG_ID:
-        with get_managed_db() as session:
-            convo = receive_message_event(event, session)
-            background_tasks.add_task(evaluate_conversation, convo.id, convo.client_id)
+        if event.object == "instagram" and event.get_recipient_id() == EVENLIFT_IG_ID:
+            with get_managed_db() as session:
+                convo = receive_message_event(event, session)
+                background_tasks.add_task(evaluate_conversation, convo.id, convo.client_id)
+    except Exception as e:
+        print("Webhook error", e)
+        print(f'Unexpected webhook.  Raw JSON below\n{raw_json}\n') 
 
     return {"message": "JSON received"}
 

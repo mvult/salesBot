@@ -33,10 +33,12 @@ class AgentSchema(AgentBaseSchema):
 # Pydantic models for Conversation
 class ConversationBaseSchema(BaseModel):
     agent_id: int
+    client_id: str
     outcome: Optional[str] = None
     platform: Optional[str] = None
     handed_off: Optional[bool] = False
     hand_off_time: Optional[datetime] = None
+    archived: Optional[bool] = False
 
 class ConversationCreateSchema(ConversationBaseSchema):
     pass

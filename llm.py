@@ -21,9 +21,9 @@ file_handler.setFormatter(formatter)
 llm_logger.addHandler(file_handler)
 
 def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> str:
-    # if SALES_BOT_MODE != "live":
-    #     print("Skipping llm")
-    #     return "Test message"
+    if SALES_BOT_MODE != "live":
+        print("Skipping llm")
+        return "Test message"
     print(f"Getting to LLM with {len(messages)} messages")
 
     with get_managed_db() as db:
