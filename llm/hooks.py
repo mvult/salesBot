@@ -1,4 +1,3 @@
-import os
 from typing import cast, Literal
 import logging
 
@@ -10,6 +9,7 @@ from llm.handoff import get_handoff_message
 from persistence.models import Message, Agent
 from persistence.db import get_managed_db
 from llm.clients import anthropic_client
+from llm.backup import get_response_from_open_ai
 
 
 llm_logger = logging.getLogger("llm_responses")
@@ -19,10 +19,11 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 file_handler.setFormatter(formatter)
 llm_logger.addHandler(file_handler)
 
-def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> tuple[str, bool]:
+#Return is message, should_handoff, and should_skip_message
+def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> tuple[str, bool, bool]:
     if SALES_BOT_MODE != "live":
         print("Skipping llm")
-        return "Test message", False
+        return "Test message", False, False
     print(f"Getting to LLM with {len(messages)} messages")
 
     with get_managed_db() as db:
@@ -42,12 +43,17 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
 
         print("LLM RESPONSE\n\n", response)
         llm_logger.debug(response)
+
+        if anthropic_error(response):
+            return get_response_from_open_ai(messages, agent.identity, agent.instructions)
+            # return "", True, True
+
         if asks_for_tool_use(response):
-            return get_handoff_message(messages, agent.model), True
+            return get_handoff_message(messages, agent.model), True, False
 
         if response.content[0].type == "text":
             print(f"Received LLM msg:\n ${response.content[0].text}\n--end--\n\n")
-            return response.content[0].text, False
+            return response.content[0].text, False, False
         else:
             raise Exception("An error occurred: Unexpected response type")
     except Exception as e:
@@ -55,6 +61,14 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
         raise e
 
 
+def anthropic_error(response: AnthropicResponse) -> bool:
+    try:
+        for c in response.content:
+            if c.type == "error":
+                return True
+        return False
+    except Exception:
+        return True
 
 def asks_for_tool_use(response: AnthropicResponse) -> bool:
     try:

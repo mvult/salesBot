@@ -1,12 +1,10 @@
 from typing import  List, Optional
 import logging
-import os
 import asyncio
 
 from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -138,14 +136,3 @@ def handle_outbound(db: Session = Depends(get_db)):
     send_reactivation_outbound(db)
     return {"message": "Outreach simulated"}
 
-# @app.post("/webhooks")
-# def handle_webevent(event: Request):
-#     print(event)
-#     try:
-#         json_body = asyncio.run(event.json())
-#         result = WebhookPayloadSchema.model_validate_json(json_body)
-#         print("Valid", result)
-#     except Exception as e:
-#         print(e)
-#
-#     return {"message": "JSON received"}

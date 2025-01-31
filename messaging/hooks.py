@@ -55,12 +55,17 @@ async def evaluate_conversation(convo_id: int, client_id: str):
 
         try:
             bundled_msgs = bundle_messages(list(msgs))
-            llm_response, hand_off = generate_llm_message(bundled_msgs, convo.agent_id)
+            llm_response, hand_off, skip_message = generate_llm_message(bundled_msgs, convo.agent_id)
+
             if hand_off:
+                print("HANDING OFF")
                 await handoff(convo, db)
+            if skip_message:
+                print("SKIPPING DUE TO LLM ERROR")
+                return
 
         except Exception as e:
-            print("Error generating llm response", e)
+            print("Unknown error generating llm response", e)
             raise e
 
         new_msg_texts = split_llm_response(llm_response)
