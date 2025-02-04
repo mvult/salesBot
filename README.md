@@ -18,16 +18,10 @@
 - Good Analytics
 - Chat export
 
-## Future Fixes
-- Systematic re-activation based on schedule.  Have we ever successfully reactivated anyone?
-- Full AI-in-the-loop
-- RAG if necessary
-
 ## Potential experiments for chatbot
 - Offer wider price range including low price to entice tire kickers
 - More direct question answering
 - Different prices
-
 
 ### Other tools
 - Chatwoot is an open-source potential replacement for fresh.  Also promises a more open Chatbot integration experience
@@ -36,27 +30,28 @@
 - Dialog Flow might do everything we want, but might also be quite limited.
 
 
-### Running questions
-Erika Jimenez seems like a 'bad' conversation, but it seemed to have worked.  We ignore her questions and things like that.  Is what I see in instagram/fresh accurate?  I.e., the missed questions and the repetitions?
-
-
 ### Streamlit Anthropic Implementation notes
 https://docs.anthropic.com/en/api/messages
 https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#tracking-cache-performance
 https://github.com/anthropics/anthropic-cookbook/blob/main/tool_use/customer_service_agent.ipynb
 
+## TODO
+- Systematic re-activation based on schedule.  Have we ever successfully reactivated anyone?
+- Single-flow for insertion of messages into the DB.  Basically compare current string for match with existing messages.
+- If non-chatbot message detected, do a handoff
+  - Ability to toggle hand-off from the front-end
+- Names on front-end
+- Ordered and filtered conversations on front-end
+- Add other agents
+- Attach Calendly webhooks
+- WhatsApp integration?  On-site?
+- Automated outreach after long enough
 
+## Monitoring
+- We want Rodrigo to monitor the chatbot and find where the issues are
+- Compare hit rate of 20-30% with humans to see how much of a 'hit' we take with the chatbot.
+- Categorize fixes into Examples, Questions for the FAQ, and Directives
 
-## TODO 
-- Add sender and receiver ID's to message x
-- test_messaging.py file x
-- lay out main work Flow
-  - message enters
-  - if new conversation, add agent based on multi-arn
-  - add message to DB
-  - sets background task, passes through 'should_pass_to_LLM' function in 30 secs.  
-  - If so, groups all unhandled messages into a bundled message by adding ID
-  - passes bundled messages to LLM
-  - receives bundled message
-  - splits it into sub-messages
-  - saves sub-messages, groups them by ID
+## Agent notes
+- Why do we even have Precio, Planes, Detalles, etc. if we immediately want to ignore the question
+

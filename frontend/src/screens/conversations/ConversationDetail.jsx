@@ -22,6 +22,13 @@ const ConversationDetail = ({ conversation, onBack }) => {
     });
   };
 
+  const handleHandoffToggle = () => {
+    updateConversation({
+      id: conversation.id,
+      conversationData: { handed_off: !conversation.handed_off }
+    });
+  }
+
   const handleOutcomeChange = (outcome) => {
     updateConversation({
       id: conversation.id,
@@ -46,7 +53,7 @@ const ConversationDetail = ({ conversation, onBack }) => {
           <div className="flex gap-2">
             {conversation.handed_off && (
               <span className="px-2 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-                Handed Off
+                Human-controlled
               </span>
             )}
             {conversation.archived && (
@@ -78,6 +85,12 @@ const ConversationDetail = ({ conversation, onBack }) => {
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
             >
               {conversation.archived ? 'Unarchive' : 'Archive'}
+            </button>
+            <button
+              onClick={handleHandoffToggle}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+            >
+              {conversation.handed_off ? 'Handoff to AI' : 'Handoff to human'}
             </button>
             <button
               onClick={handleDelete}

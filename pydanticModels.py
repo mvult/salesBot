@@ -39,6 +39,7 @@ class ConversationBaseSchema(BaseModel):
     handed_off: Optional[bool] = False
     hand_off_time: Optional[datetime] = None
     archived: Optional[bool] = False
+    most_recent_user_message: Optional[datetime] = None
 
 class ConversationCreateSchema(ConversationBaseSchema):
     pass

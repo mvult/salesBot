@@ -7,6 +7,7 @@ export const ConversationList = () => {
   const { data: conversations, isLoading, error } = useConversations();
   const [selectedConvoId, setSelectedConvoId] = useState(null);
 
+  console.log({ conversations })
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">

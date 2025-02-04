@@ -5,13 +5,13 @@ import asyncio
 from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 
 from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base, get_managed_db
 from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, ConversationPatchSchema, ConversationSchema, MessageSchema, IGMessagePayloadSchema
-from messaging.hooks import evaluate_conversation, receive_message_event
+from messaging.hooks import evaluate_conversation, handle_message_from_evenlift, receive_message_event
 from outbound.hooks import send_reactivation_outbound
 from config import WEBHOOK_TOKEN, EVENLIFT_IG_ID
 
@@ -71,8 +71,8 @@ def delete_agent(agent_id: int, db: Session = Depends(get_db)):
 @app.get("/conversations", response_model=List[ConversationSchema])
 def get_conversations(db: Session = Depends(get_db), client_id: Optional[str] = Query(None)):
     if client_id: 
-        return [db.execute(select(Conversation).filter_by(client_id=client_id)).scalars().first()]
-    return db.query(Conversation).all()
+        return [db.execute(select(Conversation).filter_by(client_id=client_id).order_by(desc(Conversation.most_recent_user_message))).scalars().first()]
+    return db.query(Conversation).order_by(desc(Conversation.most_recent_user_message)).all()
 
 @app.get("/conversations/{convo_id}", response_model=ConversationSchema)
 def get_conversation(convo_id: int, db: Session = Depends(get_db)):
@@ -124,6 +124,11 @@ def handle_webevent(_event: Request, background_tasks: BackgroundTasks):
             with get_managed_db() as session:
                 convo = receive_message_event(event, session)
                 background_tasks.add_task(evaluate_conversation, convo.id, convo.client_id)
+
+        if event.object == "instagram" and event.get_sender_id() == EVENLIFT_IG_ID:
+            with get_managed_db() as session:
+                handle_message_from_evenlift(event, session)
+
     except Exception as e:
         print("Webhook error", e)
         print(f'Unexpected webhook.  Raw JSON below\n{raw_json}\n') 

@@ -1,8 +1,7 @@
 import asyncio
-from datetime import datetime, timedelta, UTC, timezone
+from datetime import datetime, UTC
 
 from messaging.utils import calculate_typing_delay_seconds
-from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,13 +9,11 @@ from pydanticModels import IGMessagePayloadSchema
 from persistence.models import Conversation, Message
 from persistence.db import get_async_db
 from config import EVENLIFT_IG_ID, SALES_BOT_MODE
-from agents.hooks import get_optimized_agent
 from llm.hooks import generate_llm_message 
 from messaging.bundling import add_bundle_info, split_llm_response, bundle_messages
 from messaging.external import send_message_to_user 
-from messaging.utils import calculate_typing_delay_seconds, handoff
+from messaging.utils import calculate_typing_delay_seconds, handoff, get_relevant_conversation, MESSAGE_ACCUMULATION_SECONDS, should_skip_message, get_client_id, message_already_seen
 
-MESSAGE_ACCUMULATION_SECONDS = 7
 
 async def evaluate_conversation(convo_id: int, client_id: str):
     print("In async!")
@@ -103,60 +100,36 @@ def receive_message_event(event: IGMessagePayloadSchema, session:Session) -> Con
 
     m = Message(conversation_id=convo.id, content=event.get_text_content(), role="user", source="ig", sender_id=sender_id, recipient_id=recipient_id, has_attachment=event.has_attachment())
 
+    convo.most_recent_user_message = datetime.now()
     session.add(m)
     session.commit()
     session.refresh(convo)
-    
+
     return convo
+ 
+
+
+def handle_message_from_evenlift(event: IGMessagePayloadSchema, session: Session):
+    client_id, sender_id, recipient_id = get_client_id(event)
     
+    print(f"\n\nclient_id: {client_id}, sender_id: {sender_id}, recipient_id: {recipient_id}\n\n")
 
-def get_relevant_conversation(client_id: str, session: Session) -> Conversation: 
-        try:
-            return session.query(Conversation).filter_by(client_id=client_id).one()
-        except NoResultFound:
-            print("creating new convo for user", client_id)
-            new_convo = Conversation(
-                client_id=client_id,
-                platform="ig",
-                agent_id=get_optimized_agent(session).id,
-            )
-            session.add(new_convo)
-            session.flush()
-            return new_convo
-        except MultipleResultsFound:
-            raise Exception("Multiple conversations found for client_id", client_id)
+    convo = get_relevant_conversation(client_id, session)
 
-        except Exception as e:
-            print("Unexpected Error", e)
-            raise e
+    m = Message(conversation_id=convo.id, content=event.get_text_content(), role="assistant", source="ig", sender_id=sender_id, recipient_id=recipient_id, has_attachment=event.has_attachment())
 
-        
+    msgs = session.query(Message).filter_by(conversation_id=convo.id).filter_by(role="assistant").all()
 
-def get_client_id(event: IGMessagePayloadSchema) -> tuple[str, str, str]:
-    sender_id = event.get_sender_id()
-    recipient_id = event.get_recipient_id()
-    if sender_id != EVENLIFT_IG_ID:
-        return sender_id, sender_id, recipient_id
-    return recipient_id, sender_id, recipient_id
-
-def should_skip_message(convo: Conversation, lastMsg: Message) -> bool:
-    if convo.handed_off:
-        print(f"Convo {convo.client_id} {convo.client_name} already handed off to human")
-        return True
-    
-    if lastMsg.role == "assistant":
-        print("Last message was from assistant, skipping")
-        return True
+    if message_already_seen(m, msgs):
+        print("Message already seen, skipping")
+        return
+    else:
+        convo.handed_off = True
+        session.add(m)
+        session.commit()
+        session.refresh(convo)
+        return 
 
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    time_since_last_msg = now - lastMsg.create_time
-    accumulation_time = MESSAGE_ACCUMULATION_SECONDS if SALES_BOT_MODE == "live" else 2
 
-    print(time_since_last_msg, accumulation_time)
 
-    if time_since_last_msg < timedelta(seconds=accumulation_time):
-        print("Skipping message, not enough time has passed since last message")
-        return True 
-
-    return False

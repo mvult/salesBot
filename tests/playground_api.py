@@ -61,9 +61,10 @@ evenlift_id = 17841411286042347
 print(f"Sending to client_id {client_id} from {evenlift_id} content: content")
 
 random_id = 915479490737573
-r = requests.get(f"https://graph.instagram.com/v22.0/{random_id}", 
+r = requests.get(f"https://graph.instagram.com/v22.0/{evenlift_id}", 
                   headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           
-                  params={'access_token': IG_ACCESS_TOKEN}, )
+                 params={'access_token': IG_ACCESS_TOKEN, 'fields':"id,username"}
+                 )
 
 # r = requests.post(f"https://graph.instagram.com/v22.0/{evenlift_id}/messages", 
 #                   headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           

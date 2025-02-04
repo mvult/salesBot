@@ -38,3 +38,21 @@ def send_email_to_operators(convo: Conversation, to: str = "rodrigo@evenlift.io"
     print("Email successfulyl sent")
 
 
+def get_instagram_username_from_id(id: str) -> str:
+    try:
+        if SALES_BOT_MODE != "live":
+            print(f"Would ping IG for user name")
+            return "fake_name"
+
+        r = requests.get(f"https://graph.instagram.com/v22.0/{id}", 
+                    headers={"Authorization": f"Bearer {IG_ACCESS_TOKEN}", "Content-Type":"application/json"},           
+                    params={'access_token': IG_ACCESS_TOKEN, 'fields':"id,username"}
+                    )
+
+        assert r.ok
+        return r.json()['username']
+
+    except Exception as e:
+        print("Error getting username from id", e)
+        return "Unknown"
+

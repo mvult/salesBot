@@ -28,6 +28,7 @@ class Conversation(Base):
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     client_id: Mapped[str] = mapped_column(String)
     client_name: Mapped[str] = mapped_column(String, nullable=True)
+    most_recent_user_message: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True, default=func.now())
 
 class Message(Base):
     __tablename__ = "message"

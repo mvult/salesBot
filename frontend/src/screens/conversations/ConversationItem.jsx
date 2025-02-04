@@ -1,4 +1,5 @@
 import { useAgents } from '@/services/useAgents';
+import { DateTime } from 'luxon';
 
 const ConversationItem = ({ conversation, onClick }) => {
   const { data: agents } = useAgents();
@@ -17,7 +18,7 @@ const ConversationItem = ({ conversation, onClick }) => {
         <div className="flex gap-2">
           {conversation.handed_off && (
             <span className="px-2 py-1 text-sm bg-yellow-100 text-yellow-800 rounded-full">
-              Handed Off
+              Human-controlled
             </span>
           )}
           {conversation.archived && (
@@ -28,7 +29,8 @@ const ConversationItem = ({ conversation, onClick }) => {
         </div>
       </div>
       <div className="mt-2 text-sm text-gray-600">
-        <p>Platform: {conversation.platform || 'N/A'}</p>
+        {/* <p>Platform: {conversation.platform || 'N/A'}</p> */}
+        <p>Last user message: {DateTime.fromISO(conversation.most_recent_user_message).toRelative()}</p>
         <p>Agent: {agent_name || 'N/A'}</p>
         {conversation.outcome && (
           <p className="mt-1">Outcome: {conversation.outcome}</p>
