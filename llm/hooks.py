@@ -10,19 +10,14 @@ from persistence.models import Message, Agent
 from persistence.db import get_managed_db
 from llm.clients import anthropic_client
 from llm.backup import get_response_from_open_ai
+from logs.setup import llm_logger
 
-
-llm_logger = logging.getLogger("llm_responses")
-llm_logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler("llm_responses.log")
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-file_handler.setFormatter(formatter)
-llm_logger.addHandler(file_handler)
 
 #Return is message, should_handoff, and should_skip_message
 def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int = 512) -> tuple[str, bool, bool]:
+    llm_logger.debug(f"Generating LLM message with {len(messages)} messages")
     if SALES_BOT_MODE != "live":
-        print("Skipping llm")
+        llm_logger.debug("Skipping llm")
         return "Test message", False, False
     print(f"Getting to LLM with {len(messages)} messages")
 
@@ -41,8 +36,7 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
             tools=agent.tools
         )  
 
-        print("LLM RESPONSE\n\n", response)
-        llm_logger.debug(response)
+        llm_logger.debug(f"Anthropic: {response}")
 
         if anthropic_error(response):
             return get_response_from_open_ai(messages, agent.identity, agent.instructions)
@@ -57,6 +51,7 @@ def generate_llm_message(messages: list[Message], agent_id: int, max_tokens: int
         else:
             raise Exception("An error occurred: Unexpected response type")
     except Exception as e:
+        llm_logger.debug(f"Anthropic error: {e}")
         print("Anthropic error" , e)
         raise e
 

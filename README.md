@@ -1,3 +1,6 @@
+
+uvicorn main:app --reload --host 0.0.0.0
+
 ## Current Issues
 - No ping on message
 - No analytics
@@ -54,4 +57,6 @@ https://github.com/anthropics/anthropic-cookbook/blob/main/tool_use/customer_ser
 
 ## Agent notes
 - Why do we even have Precio, Planes, Detalles, etc. if we immediately want to ignore the question
+
+
 

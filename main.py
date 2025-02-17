@@ -1,12 +1,13 @@
 from typing import  List, Optional
-import logging
 import asyncio
+import traceback
 
 from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
 
 from persistence.models import Agent, Conversation, Message
 from persistence.db import engine, get_db, Base, get_managed_db
@@ -14,6 +15,7 @@ from pydanticModels import AgentBaseSchema, AgentCreateSchema, AgentSchema, Conv
 from messaging.hooks import evaluate_conversation, handle_message_from_evenlift, receive_message_event
 from outbound.hooks import send_reactivation_outbound
 from config import WEBHOOK_TOKEN, EVENLIFT_IG_ID
+from logs.setup import webhook_logger, errors_logger
 
 app = FastAPI()
 
@@ -25,20 +27,34 @@ app.add_middleware(
         allow_headers=["*"],
 )
 
-webhook_logger = logging.getLogger("webhook_logger")
-webhook_logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler("webhook.log", mode="a")
-file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-file_handler.setFormatter(formatter)
-webhook_logger.addHandler(file_handler)
-
-logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 Base.metadata.create_all(bind=engine)
 
 app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
 app.mount("/front", StaticFiles(directory="frontend/dist", html=True), name="root")
 
+# @app.middleware("http")
+# async def log_exceptions_middleware(request: Request, call_next):
+#      try:
+#          response = await call_next(request)
+#          return response
+#      except Exception as e:
+#          tb = traceback.format_exc()
+#          errors_logger.error(e)
+#          errors_logger.error(tb)
+#          # raise e
+#          return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+#
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    errors_logger.error(
+        f"Unhandled Exception: {str(exc)}",
+        exc_info=True,  # Include stack trace
+        extra={"path": request.url.path, "method": request.method},
+    )
+    return JSONResponse(
+        content={"detail": "Internal Server Error"},
+        status_code=500,
+    )
 @app.post("/agents", response_model=AgentSchema)
 def create_agent(agent: AgentCreateSchema, db: Session = Depends(get_db)):
     db_agent = Agent(**agent.model_dump())
