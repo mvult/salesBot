@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, UTC
+import random
 
 from messaging.utils import calculate_typing_delay_seconds
 from sqlalchemy import select
@@ -13,9 +14,12 @@ from llm.hooks import generate_llm_message
 from messaging.bundling import add_bundle_info, split_llm_response, bundle_messages
 from messaging.external import send_message_to_user 
 from messaging.utils import calculate_typing_delay_seconds, handoff, get_relevant_conversation, MESSAGE_ACCUMULATION_SECONDS, should_skip_message, get_client_id, message_already_seen
+from logs.setup import errors_logger, process_logger
 
 
 async def evaluate_conversation(convo_id: int, client_id: str):
+    process_id = random.randint(0,1000000)
+    process_logger.info(f"{process_id}: Evaluating convo")
     print("In async!")
     if SALES_BOT_MODE == "live":
         await asyncio.sleep(MESSAGE_ACCUMULATION_SECONDS + 5)
@@ -36,6 +40,8 @@ async def evaluate_conversation(convo_id: int, client_id: str):
         _convo = await db.execute(select(Conversation).filter_by(id=convo_id))
         convo = _convo.scalars().one()
 
+        process_logger.info(f"{process_id}: Got {len(msgs)} messages and convo")
+
         if any(m.has_attachment and m.role == "user" for m in msgs):
             print("Message has attachment")
             if not convo.handed_off:
@@ -46,13 +52,18 @@ async def evaluate_conversation(convo_id: int, client_id: str):
         if should_skip_message(convo, latest):
             print("SKIPPING")
             return
+        
+        process_logger.info(f"{process_id}: Not skipping")
 
         print("NOT SKIPPING")
         msgs = add_bundle_info(list(msgs))
 
+
         try:
             bundled_msgs = bundle_messages(list(msgs))
             llm_response, hand_off, skip_message = generate_llm_message(bundled_msgs, convo.agent_id)
+
+            process_logger.info(f"{process_id}: Got LLM message.  Hand_off: {hand_off}  Skip: {skip_message} message: '{llm_response[:40]}... '")
 
             if hand_off:
                 print("HANDING OFF")
@@ -63,11 +74,13 @@ async def evaluate_conversation(convo_id: int, client_id: str):
 
         except Exception as e:
             print("Unknown error generating llm response", e)
+            process_logger.info(f"{process_id}: Got error {str(e)}")
+            errors_logger.error(e, exc_info=True)
             raise e
 
         new_msg_texts = split_llm_response(llm_response)
         
-        print(f"Split the following text: \n${llm_response}\nInto the following messages:\n${new_msg_texts}")
+        process_logger.info(f"{process_id}: Split the following text: \n${llm_response}\nInto the following messages:\n${new_msg_texts}")
 
         new_msgs = [Message(content=m, 
                             conversation_id=convo_id, 
@@ -79,16 +92,21 @@ async def evaluate_conversation(convo_id: int, client_id: str):
 
         for i, m in enumerate(new_msgs):
             try:
+                process_logger.info(f"{process_id}: Sending message {i}")
                 if SALES_BOT_MODE == "live" and i != 0:
                     await asyncio.sleep(calculate_typing_delay_seconds(m.content))
                 send_message_to_user(m, convo.client_id)
                 m.create_time = datetime.now(UTC)
                 db.add(m)
                 await db.commit()
+                process_logger.info(f"{process_id}: Sent message {i}")
             except Exception as e:
+                process_logger.info(f"{process_id}: Message error {str(e)}")
+                errors_logger.error(e, exc_info=True)
                 print("Error sending message to user:", e)
                 raise e
 
+        process_logger.info(f"{process_id}: Complete")
 
         
 def receive_message_event(event: IGMessagePayloadSchema, session:Session) -> Conversation:

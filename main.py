@@ -32,18 +32,7 @@ Base.metadata.create_all(bind=engine)
 app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
 app.mount("/front", StaticFiles(directory="frontend/dist", html=True), name="root")
 
-# @app.middleware("http")
-# async def log_exceptions_middleware(request: Request, call_next):
-#      try:
-#          response = await call_next(request)
-#          return response
-#      except Exception as e:
-#          tb = traceback.format_exc()
-#          errors_logger.error(e)
-#          errors_logger.error(tb)
-#          # raise e
-#          return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
-#
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     errors_logger.error(
@@ -55,6 +44,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error"},
         status_code=500,
     )
+
 @app.post("/agents", response_model=AgentSchema)
 def create_agent(agent: AgentCreateSchema, db: Session = Depends(get_db)):
     db_agent = Agent(**agent.model_dump())
@@ -132,8 +122,8 @@ def handle_webevent(_event: Request, background_tasks: BackgroundTasks):
     raw_json = asyncio.run(_event.json())
     try:
         event= IGMessagePayloadSchema.model_validate(raw_json)
-        print("Pretty-printed Webhook event:")
-        print(event.model_dump_json(indent=2))
+        # print("Pretty-printed Webhook event:")
+        # print(event.model_dump_json(indent=2))
         webhook_logger.info(event.model_dump_json())
 
         if event.object == "instagram" and event.get_recipient_id() == EVENLIFT_IG_ID:
@@ -148,6 +138,8 @@ def handle_webevent(_event: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         print("Webhook error", e)
         print(f'Unexpected webhook.  Raw JSON below\n{raw_json}\n') 
+        errors_logger.error(e, exc_info=True)
+        
         raise HTTPException(status_code=422, detail=f"Unprocessable entity: {e}")
 
     return {"message": "JSON received"}
